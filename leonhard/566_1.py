@@ -1,7 +1,8 @@
 import copy
 
+
 class cut:
-    def __init__(self, a=[0, 1, 0, 1], b=0):
+    def __init__(self, a, b=0):
         self.a = a
         self.b = b
 
@@ -25,54 +26,65 @@ class cut:
     def mag(self):
         return self.a[0] / self.a[1] + self.a[2] / self.a[3] ** 0.5
 
+    def lik(self, other):
+        for ind in range(0, 4):
+            if self.a[ind] != other.a[ind]:
+                return False
+        return True
+
     def clean(self):
         if self.mag() >= 1:
             return cut.clean(self + cut([-1, 1, 0, 1]))
         elif self.mag() < 0:
             return cut.clean(self + cut([1, 1, 0, 1]))
         else:
-            return self
+            return copy.deepcopy(self)
 
     def __str__(self):
         return str(self.a)+str(self.b)+'('+str(self.mag())+")||"
 
+
 def gcd(a, b):
     while b:
-        a, b = b, a%b
+        a, b = b, a % b
     return a
 
+
 def cycle(a, b, c):
+
     inp = [cut([1, a, 0, 1]), cut([1, b, 0, 1]), cut([0, 1, 1, c])]
+    if (c in [16,25,49]):
+        inp[2] = cut([1, int(c**0.5), 0, 1])
     count, i = 0, -1
     flip = [cut([0, 1, 0, 1], -1), cut([0, 1, 0, 1], 1)]
-    ent, ext = cut(), cut()
+    ent, ext = cut([0, 1, 0, 1]), cut([0, 1, 0, 1])
 
     # single flip
-    while flip :
-    #for crap in range(10):
+    while flip:
+
         i += 1
         count += 1
         s = 0
         temp = []
         ent, ext = cut.clean(ext), cut.clean(ext + inp[i % 3])
-        ent.b, ext.b = 0, 0
 
-        # counting number of cuts in selected portion
+        # check to eliminate the case of all icing down
+        if len(flip)==2 and ent.lik(flip[1]) and ext.lik(flip[0]) and flip[1].b == 1:
+            flip[1].a = copy.deepcopy(ext.a)
+            flip[0].b, flip[1].b = 1, -1
+            continue
+
+
+        # counting number of cuts with in selected portion
         if ent.mag() > ext.mag():
             while s < len(flip) and flip[s].mag() > ent.mag():
                 s += 1
             while s < len(flip) and flip[s].mag() < ext.mag():
                 s += 1
 
-
         else:
-            while flip[s].mag() < ext.mag() and flip[s].mag() > ent.mag() :
+            while s < len(flip) and ext.mag() > flip[s].mag() > ent.mag():
                 s += 1
-                if (s == len(flip)):
-                    0
-                    break
-
-
 
         # switching cut positions
         for dummy in range(s):
@@ -80,8 +92,7 @@ def cycle(a, b, c):
             temp[0].b = flip[0].b
             del flip[0]
 
-
-        #adding entry exit
+        # adding entry exit
         if s % 2 == 0:
             temp.insert(0, copy.deepcopy(ent))
             temp.append(copy.deepcopy(ext))
@@ -90,20 +101,17 @@ def cycle(a, b, c):
             else:
                 temp[0].b, temp[-1].b = temp[-2].b, temp[-2].b*-1
 
-
         flip.extend(temp)
 
-
-        while flip[0].mag() == ext.mag():
+        # sending ext eq cuts to the back
+        while flip[0].lik(ext):
             flip.append(flip[0])
             del flip[0]
 
-
         j = len(flip) -1
-
         while j >= 0:
 
-            if flip[j-1].mag() == flip[j].mag():
+            if flip[j-1].lik(flip[j]):
                 if flip[j-1].b*flip[j].b == -1:
                     del flip[j]
                     del flip[j-1]
@@ -111,22 +119,20 @@ def cycle(a, b, c):
                 else:
                     print("lund")
             j += -1
-        #print(count)
-        #for x in flip: print(x, end="")
 
     return count
 
 
 def main():
 
-    g = 14
+    g = 53
     total = 0
 
     for c in range(g, 10, -1):
         for b in range(c - 1, 9, -1):
             for a in range(b - 1, 8, -1):
-                k=cycle(a, b ,c)
-                print(a, b, c,':',k)
+                k = cycle(a, b, c)
+                print(a, b, c, ':', k)
                 total += k
     print(total)
 
